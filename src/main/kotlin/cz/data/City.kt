@@ -7,9 +7,13 @@ class City(
     var populationCount: Int,
     var posX: Double,
     var posY: Double
-) : Serializable {
+) : Serializable, IKeyable<String> {
     override fun toString(): String {
         return "City(name='$name', population=$populationCount, posX=$posX, posY=$posY)"
+    }
+
+    override fun getKey(): String {
+        return name
     }
 
     override fun equals(other: Any?): Boolean {

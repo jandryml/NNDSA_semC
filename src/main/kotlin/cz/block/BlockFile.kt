@@ -19,6 +19,10 @@ class BlockFile<T : Serializable> {
         this.controlBlock = loadControlBlock()
     }
 
+    public fun getDataBlockCount(): Int {
+        return controlBlock.dataBlockCount
+    }
+
     private fun initNewBlockFile(dataBlockSize: Int, dataBlockCount: Int, dataPerDataBlock: Int) {
         this.controlBlock =
             saveBlock(ControlBlock(dataBlockSize, dataBlockCount), 0, controlBlockSize) as ControlBlock
@@ -34,7 +38,7 @@ class BlockFile<T : Serializable> {
 
     public fun loadDataBlock(index: Int): DataBlock<T> {
         if (index < 1 || index > controlBlock.dataBlockCount) {
-            throw ArrayIndexOutOfBoundsException("Invalid index, insert between 1 and ${controlBlock.dataBlockCount}")
+            throw ArrayIndexOutOfBoundsException("Invalid index $index, insert between 1 and ${controlBlock.dataBlockCount}")
         }
         return loadBlock(index) as DataBlock<T>
     }
@@ -45,13 +49,14 @@ class BlockFile<T : Serializable> {
             val size = stream.readInt()
             val buffer = ByteArray(size)
             stream.read(buffer, 0, size)
+            stream.close()
             return SerializationUtils.deserialize(buffer)
         }
     }
 
     public fun saveDataBlock(dataBlock: DataBlock<T>, index: Int) {
         if (index < 1 || index > controlBlock.dataBlockCount) {
-            throw ArrayIndexOutOfBoundsException("Invalid index, insert between 1 and ${controlBlock.dataBlockCount}")
+            throw ArrayIndexOutOfBoundsException("Invalid index $index, insert between 1 and ${controlBlock.dataBlockCount}")
         }
         saveBlock(dataBlock, index, controlBlock.dataBlockSize)
     }
@@ -59,8 +64,11 @@ class BlockFile<T : Serializable> {
     private fun saveBlock(block: IBlock, index: Int, size: Int): IBlock {
         RandomAccessFile(filename, "rw").use { stream ->
             stream.seek(getBlockOffsetByIndex(index))
-            stream.writeInt(size)
-            stream.write(convertToByteArray(block, size), 0, size)
+            // shorten bytes count due to Integer size at beginning
+            val updatedSize = size-4
+            stream.writeInt(updatedSize)
+            stream.write(convertToByteArray(block, updatedSize), 0, updatedSize)
+            stream.close()
             return block
         }
     }

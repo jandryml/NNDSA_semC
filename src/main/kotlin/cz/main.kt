@@ -32,32 +32,6 @@ fun main() {
 //        )
 //    )
 //    loadBlocks().forEach { println(it) }
-    val string = "asdf"
-    val result = ByteArray(100)
-    System.arraycopy(string.toByteArray(), 0, result, 0, string.length)
-    println()
+
 }
 
-fun saveBLocks(blocks: List<Block>) {
-    DataOutputStream(FileOutputStream("someFile.txt")).use { stream ->
-        for (block in blocks) {
-            val buffer: ByteArray = SerializationUtils.serialize(block)
-            stream.writeInt(buffer.size)
-            stream.write(buffer, 0, buffer.size)
-        }
-        stream.flush()
-    }
-}
-
-fun loadBlocks(): List<Block> {
-    DataInputStream(FileInputStream("someFile.txt")).use { stream ->
-        val blocksList = ArrayList<Block>()
-        while (stream.available() != 0) {
-            val size = stream.readInt()
-            val buffer = stream.readNBytes(size)
-            blocksList.add(SerializationUtils.deserialize(buffer))
-        }
-
-        return blocksList
-    }
-}

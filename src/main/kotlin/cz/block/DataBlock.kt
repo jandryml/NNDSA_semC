@@ -1,35 +1,34 @@
 package cz.block
 
+import cz.data.IKeyable
+import cz.exception.DataBlockFullException
 import java.io.Serializable
 
-class DataBlock<T : Serializable>(
+class DataBlock<K, T>(
     private var dataPerDataBlock: Int,
     private var substituteBlockIndex: Int?
-) : IBlock {
+) : IBlock where T : Serializable, T : IKeyable<K> {
     private var dataList: MutableList<T> = ArrayList()
 
     fun addData(data: T) {
         if (dataList.size <= dataPerDataBlock) {
             dataList.add(data)
         } else {
-            throw IndexOutOfBoundsException("Block is full!")
+            throw DataBlockFullException("Block is full!")
         }
     }
 
-    fun removeData(data: T) {
+    fun removeData(key: K) {
         dataList.forEach {
-            if (it == data) {
+            if (it.getKey() == key) {
                 dataList.remove(it)
+                return
             }
         }
     }
 
     fun getData(): List<T> {
         return dataList
-    }
-
-    fun isDataInsertable(): Boolean {
-        return dataList.size < dataPerDataBlock
     }
 
     fun setSubstituteBlockIndex(index: Int) {

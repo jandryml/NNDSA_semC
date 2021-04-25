@@ -7,9 +7,9 @@ internal class BlockFileTest {
 
     @Test
     fun blockFileTest() {
-        val blockFile = BlockFile<City>("test.txt", 1000, 10, 10)
+        val blockFile = BlockFile<String, City>("test.txt", 1000, 10, 10)
 
-        val dataBlock = DataBlock<City>(10, null)
+        val dataBlock = DataBlock<String, City>(10, null)
 
         dataBlock.addData(City("Praha", 50000, 543.2, 984.545465))
         dataBlock.addData(City("Kutná hora", 500, 543.2, 984.545465))

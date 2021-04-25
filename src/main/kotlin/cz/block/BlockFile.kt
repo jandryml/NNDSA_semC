@@ -1,10 +1,11 @@
 package cz.block
 
+import cz.data.IKeyable
 import org.apache.commons.lang3.SerializationUtils
 import java.io.RandomAccessFile
 import java.io.Serializable
 
-class BlockFile<T : Serializable> {
+class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
     private var filename: String
     private lateinit var controlBlock: ControlBlock
     private val controlBlockSize = 500
@@ -36,11 +37,19 @@ class BlockFile<T : Serializable> {
         return loadBlock(0) as ControlBlock
     }
 
-    public fun loadDataBlock(index: Int): DataBlock<T> {
+    public fun loadAllDataBlocks(): List<DataBlock<K, T>> {
+        val dataBlockList = ArrayList<DataBlock<K, T>>()
+        for (i in 1..controlBlock.dataBlockCount) {
+            dataBlockList.add(loadDataBlock(i))
+        }
+        return dataBlockList
+    }
+
+    public fun loadDataBlock(index: Int): DataBlock<K, T> {
         if (index < 1 || index > controlBlock.dataBlockCount) {
             throw ArrayIndexOutOfBoundsException("Invalid index $index, insert between 1 and ${controlBlock.dataBlockCount}")
         }
-        return loadBlock(index) as DataBlock<T>
+        return loadBlock(index) as DataBlock<K, T>
     }
 
     private fun loadBlock(index: Int): IBlock {
@@ -54,7 +63,7 @@ class BlockFile<T : Serializable> {
         }
     }
 
-    public fun saveDataBlock(dataBlock: DataBlock<T>, index: Int) {
+    public fun saveDataBlock(dataBlock: DataBlock<K, T>, index: Int) {
         if (index < 1 || index > controlBlock.dataBlockCount) {
             throw ArrayIndexOutOfBoundsException("Invalid index $index, insert between 1 and ${controlBlock.dataBlockCount}")
         }

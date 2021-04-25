@@ -1,6 +1,6 @@
 package cz.block
 
 class ControlBlock(
-    val dataBlockSize: Int,
+    val dataBlockMaxSize: Int,
     val dataBlockCount: Int
 ) : IBlock

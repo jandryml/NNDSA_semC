@@ -9,24 +9,26 @@ import java.io.Serializable
 
 class HashFileService<K, T>(
     fileName: String,
-    dataBlockSize: Int,
+    keyMaxSize: Int,
     dataBlockCount: Int,
     dataPerDataBlock: Int
 ) where T : IKeyable<K>, T : Serializable {
-    private val blockFile: BlockFile<K, T>
-
-    init {
-        blockFile = if (File(fileName).exists()) {
-            BlockFile(fileName)
-        } else {
-            BlockFile(fileName, dataBlockSize, dataBlockCount, dataPerDataBlock)
-        }
+    private val blockFile: BlockFile<K, T> = if (File(fileName).exists()) {
+        BlockFile(fileName)
+    } else {
+        BlockFile(fileName, keyMaxSize, dataBlockCount, dataPerDataBlock)
     }
 
     fun saveData(data: T) {
         val dataBlock = loadDataBlock(data.getKey())
+        validateDataKeyLength(data, dataBlock)
         dataBlock.addData(data)
         blockFile.saveDataBlock(dataBlock, magicHash(data.getKey()))
+    }
+
+    private fun validateDataKeyLength(data: T, dataBlock: DataBlock<K, T>) {
+        if (data.getKeySize() > dataBlock.keyMaxSize)
+            throw IndexOutOfBoundsException("Data key is to long with size ${data.getKeySize()}. Max allowed ${dataBlock.keyMaxSize}.")
     }
 
     fun findByKey(key: K): T {
@@ -69,8 +71,8 @@ class HashFileService<K, T>(
         if (hash < 0) {
             hash *= -1
         }
-        hash += 1
+        hash %= blockFile.getDataBlockCount()
 
-        return hash % blockFile.getDataBlockCount()
+        return hash + 1
     }
 }

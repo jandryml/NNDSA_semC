@@ -31,5 +31,7 @@ class City(
         return name.hashCode()
     }
 
-
+    override fun getKeySize(): Int {
+        return name.length
+    }
 }

@@ -6,6 +6,7 @@ import java.io.Serializable
 
 class DataBlock<K, T>(
     private var dataPerDataBlock: Int,
+    val keyMaxSize: Int,
     private var substituteBlockIndex: Int?
 ) : IBlock where T : Serializable, T : IKeyable<K> {
     private var dataList: MutableList<T> = ArrayList()

@@ -9,7 +9,7 @@ internal class BlockFileTest {
     fun blockFileTest() {
         val blockFile = BlockFile<String, City>("test.txt", 1000, 10, 10)
 
-        val dataBlock = DataBlock<String, City>(10, null)
+        val dataBlock = DataBlock<String, City>(10, 50,null)
 
         dataBlock.addData(City("Praha", 50000, 543.2, 984.545465))
         dataBlock.addData(City("Kutná hora", 500, 543.2, 984.545465))
@@ -17,10 +17,10 @@ internal class BlockFileTest {
         dataBlock.addData(City("Jihlava", 500, 543.2, 984.545465))
         dataBlock.addData(City("Pardubice", 500, 543.2, 984.545465))
         dataBlock.addData(City("Brno", 500, 543.2, 984.545465))
-        dataBlock.addData(City("ščřščřščřščžščžščžščřěšč+čř+řč+ěšřěšřščžřřčžřčžřčžřčžčřž", 500, 543.2, 984.545465))
-        dataBlock.addData(City("ščřščřščřščžščžščžščřěšč+čř+řč+ěšřěšřščžřřčžřčžřčžřčžčřž", 500, 543.2, 984.545465))
-        dataBlock.addData(City("ščřščřščřščžščžščžščřěšč+čř+řč+ěšřěšřščžřřčžřčžřčžřčžčřž", 500, 543.2, 984.545465))
-        dataBlock.addData(City("ščřščřščřščžščžščžščřěšč+čř+řč+ěšřěšřščžřřčžřčžřčžřčžčřž", 500, 543.2, 984.545465))
+        dataBlock.addData(City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465))
+        dataBlock.addData(City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465))
+        dataBlock.addData(City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465))
+        dataBlock.addData(City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465))
 
         blockFile.saveDataBlock(dataBlock, 7)
         blockFile.loadDataBlock(7)

@@ -10,9 +10,9 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
     private lateinit var controlBlock: ControlBlock
     private val controlBlockSize = 500
 
-    constructor(fileName: String, dataBlockSize: Int, dataBlockCount: Int, dataPerDataBlock: Int) {
+    constructor(fileName: String, keyMaxSize: Int, dataBlockCount: Int, dataPerDataBlock: Int) {
         this.filename = fileName
-        initNewBlockFile(dataBlockSize, dataBlockCount, dataPerDataBlock)
+        initNewBlockFile(keyMaxSize, dataBlockCount, dataPerDataBlock)
     }
 
     constructor(fileName: String) {
@@ -20,24 +20,31 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
         this.controlBlock = loadControlBlock()
     }
 
-    public fun getDataBlockCount(): Int {
+    fun getDataBlockCount(): Int {
         return controlBlock.dataBlockCount
     }
 
-    private fun initNewBlockFile(dataBlockSize: Int, dataBlockCount: Int, dataPerDataBlock: Int) {
+    private fun initNewBlockFile(keyMaxSize: Int, dataBlockCount: Int, dataPerDataBlock: Int) {
+        val dataBlockMaxSize = calculateDataBlockMaxSize(keyMaxSize, dataPerDataBlock)
         this.controlBlock =
-            saveBlock(ControlBlock(dataBlockSize, dataBlockCount), 0, controlBlockSize) as ControlBlock
+            saveBlock(ControlBlock(dataBlockMaxSize, dataBlockCount), 0, controlBlockSize) as ControlBlock
 
         for (i in 1..dataBlockCount) {
-            saveDataBlock(DataBlock(dataPerDataBlock, null), i)
+            saveDataBlock(DataBlock(dataPerDataBlock, keyMaxSize, null), i)
         }
+    }
+
+    private fun calculateDataBlockMaxSize(keyMaxSize: Int, dataPerDataBlock: Int): Int {
+        // 296 - empty data block size
+        // 29 - byte size of data block element with empty key, keyMaxSize * 2 - special chars
+        return 296 + (29 + keyMaxSize * 2) * dataPerDataBlock
     }
 
     private fun loadControlBlock(): ControlBlock {
         return loadBlock(0) as ControlBlock
     }
 
-    public fun loadAllDataBlocks(): List<DataBlock<K, T>> {
+    fun loadAllDataBlocks(): List<DataBlock<K, T>> {
         val dataBlockList = ArrayList<DataBlock<K, T>>()
         for (i in 1..controlBlock.dataBlockCount) {
             dataBlockList.add(loadDataBlock(i))
@@ -45,10 +52,8 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
         return dataBlockList
     }
 
-    public fun loadDataBlock(index: Int): DataBlock<K, T> {
-        if (index < 1 || index > controlBlock.dataBlockCount) {
-            throw ArrayIndexOutOfBoundsException("Invalid index $index, insert between 1 and ${controlBlock.dataBlockCount}")
-        }
+    fun loadDataBlock(index: Int): DataBlock<K, T> {
+        validateIndex(index)
         return loadBlock(index) as DataBlock<K, T>
     }
 
@@ -63,18 +68,16 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
         }
     }
 
-    public fun saveDataBlock(dataBlock: DataBlock<K, T>, index: Int) {
-        if (index < 1 || index > controlBlock.dataBlockCount) {
-            throw ArrayIndexOutOfBoundsException("Invalid index $index, insert between 1 and ${controlBlock.dataBlockCount}")
-        }
-        saveBlock(dataBlock, index, controlBlock.dataBlockSize)
+    fun saveDataBlock(dataBlock: DataBlock<K, T>, index: Int) {
+        validateIndex(index)
+        saveBlock(dataBlock, index, controlBlock.dataBlockMaxSize)
     }
 
     private fun saveBlock(block: IBlock, index: Int, size: Int): IBlock {
         RandomAccessFile(filename, "rw").use { stream ->
             stream.seek(getBlockOffsetByIndex(index))
             // shorten bytes count due to Integer size at beginning
-            val updatedSize = size-4
+            val updatedSize = size - 4
             stream.writeInt(updatedSize)
             stream.write(convertToByteArray(block, updatedSize), 0, updatedSize)
             stream.close()
@@ -84,16 +87,23 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
 
     private fun convertToByteArray(block: IBlock, blockSize: Int): ByteArray {
         val blockBytes = SerializationUtils.serialize(block)
+//        println(blockBytes.size)
         val buffer = ByteArray(blockSize)
         System.arraycopy(blockBytes, 0, buffer, 0, blockBytes.size)
         return buffer
+    }
+
+    private fun validateIndex(index: Int) {
+        if (index < 1 || index > controlBlock.dataBlockCount) {
+            throw ArrayIndexOutOfBoundsException("Invalid index $index, insert between 1 and ${controlBlock.dataBlockCount}")
+        }
     }
 
     private fun getBlockOffsetByIndex(index: Int): Long {
         return if (index == 0) {
             0L
         } else {
-            (controlBlockSize + (index * controlBlock.dataBlockSize)).toLong()
+            (controlBlockSize + (index * controlBlock.dataBlockMaxSize)).toLong()
         }
     }
 }

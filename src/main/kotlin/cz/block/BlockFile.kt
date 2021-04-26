@@ -1,6 +1,7 @@
 package cz.block
 
 import cz.data.IKeyable
+import cz.exception.DataBlockFullException
 import org.apache.commons.lang3.SerializationUtils
 import java.io.RandomAccessFile
 import java.io.Serializable
@@ -24,10 +25,64 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
         return controlBlock.dataBlockCount
     }
 
+    fun loadAllDataBlocks(): List<DataBlock<K, T>> {
+        val dataBlockList = ArrayList<DataBlock<K, T>>()
+        for (i in 1..controlBlock.dataBlockCount) {
+            val actualDataBlock = loadDataBlock(i)
+            dataBlockList.add(actualDataBlock)
+
+            var substituteBlockIndex = actualDataBlock.substituteBlockIndex
+
+            while (substituteBlockIndex != null) {
+                val substituteBlock = loadDataBlock(substituteBlockIndex, true)
+                dataBlockList.add(substituteBlock)
+                substituteBlockIndex = substituteBlock.substituteBlockIndex
+            }
+        }
+        return dataBlockList
+    }
+
+    fun loadDataBlock(index: Int, isSubstitute: Boolean = false): DataBlock<K, T> {
+        if (!isSubstitute) validateIndex(index)
+        return loadBlock(index) as DataBlock<K, T>
+    }
+
+    fun saveControlBlock(controlBlock: ControlBlock): ControlBlock {
+        return saveBlock(controlBlock, 0, controlBlockSize) as ControlBlock
+    }
+
+    fun saveDataBlock(dataBlock: DataBlock<K, T>, index: Int, isSubstitute: Boolean = false): DataBlock<K, T> {
+        if (!isSubstitute) validateIndex(index)
+        return saveBlock(dataBlock, index, controlBlock.dataBlockMaxSize) as DataBlock<K, T>
+    }
+
+    fun saveToSubstituteBlock(data: T, dataBlock: DataBlock<K, T>, actualIndex: Int) {
+        val substituteBlockIndex = dataBlock.substituteBlockIndex
+
+        if (substituteBlockIndex != null) {
+            val substituteBlock = loadDataBlock(substituteBlockIndex, true)
+            try {
+                substituteBlock.addData(data)
+                saveDataBlock(substituteBlock, substituteBlockIndex, true)
+            } catch (e: DataBlockFullException) {
+                saveToSubstituteBlock(data, substituteBlock, substituteBlockIndex)
+            }
+        } else {
+            dataBlock.substituteBlockIndex = controlBlock.nextFreeSubstituteBlockIndex
+            saveDataBlock(dataBlock, actualIndex, true)
+
+            val newSubstituteBlock = DataBlock<K, T>(dataBlock.dataPerDataBlock, dataBlock.keyMaxSize, null)
+            newSubstituteBlock.addData(data)
+            saveDataBlock(newSubstituteBlock, controlBlock.nextFreeSubstituteBlockIndex++, true)
+
+            saveControlBlock(controlBlock)
+        }
+    }
+
     private fun initNewBlockFile(keyMaxSize: Int, dataBlockCount: Int, dataPerDataBlock: Int) {
         val dataBlockMaxSize = calculateDataBlockMaxSize(keyMaxSize, dataPerDataBlock)
         this.controlBlock =
-            saveBlock(ControlBlock(dataBlockMaxSize, dataBlockCount), 0, controlBlockSize) as ControlBlock
+            saveControlBlock(ControlBlock(dataBlockMaxSize, dataBlockCount))
 
         for (i in 1..dataBlockCount) {
             saveDataBlock(DataBlock(dataPerDataBlock, keyMaxSize, null), i)
@@ -44,19 +99,6 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
         return loadBlock(0) as ControlBlock
     }
 
-    fun loadAllDataBlocks(): List<DataBlock<K, T>> {
-        val dataBlockList = ArrayList<DataBlock<K, T>>()
-        for (i in 1..controlBlock.dataBlockCount) {
-            dataBlockList.add(loadDataBlock(i))
-        }
-        return dataBlockList
-    }
-
-    fun loadDataBlock(index: Int): DataBlock<K, T> {
-        validateIndex(index)
-        return loadBlock(index) as DataBlock<K, T>
-    }
-
     private fun loadBlock(index: Int): IBlock {
         RandomAccessFile(filename, "rw").use { stream ->
             stream.seek(getBlockOffsetByIndex(index))
@@ -66,11 +108,6 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
             stream.close()
             return SerializationUtils.deserialize(buffer)
         }
-    }
-
-    fun saveDataBlock(dataBlock: DataBlock<K, T>, index: Int) {
-        validateIndex(index)
-        saveBlock(dataBlock, index, controlBlock.dataBlockMaxSize)
     }
 
     private fun saveBlock(block: IBlock, index: Int, size: Int): IBlock {

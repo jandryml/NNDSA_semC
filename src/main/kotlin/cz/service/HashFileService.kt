@@ -3,6 +3,8 @@ package cz.service
 import cz.block.BlockFile
 import cz.block.DataBlock
 import cz.data.IKeyable
+import cz.exception.DataBlockFullException
+import cz.exception.DataKeyTooLongException
 import cz.exception.DataNotFoundException
 import java.io.File
 import java.io.Serializable
@@ -22,22 +24,32 @@ class HashFileService<K, T>(
     fun saveData(data: T) {
         val dataBlock = loadDataBlock(data.getKey())
         validateDataKeyLength(data, dataBlock)
-        dataBlock.addData(data)
-        blockFile.saveDataBlock(dataBlock, magicHash(data.getKey()))
+        val index = magicHash(data.getKey())
+        println("Saving to index $index")
+        try {
+            dataBlock.addData(data)
+            blockFile.saveDataBlock(dataBlock, index)
+        } catch (e: DataBlockFullException) {
+            blockFile.saveToSubstituteBlock(data, dataBlock, index)
+        }
     }
 
     private fun validateDataKeyLength(data: T, dataBlock: DataBlock<K, T>) {
         if (data.getKeySize() > dataBlock.keyMaxSize)
-            throw IndexOutOfBoundsException("Data key is to long with size ${data.getKeySize()}. Max allowed ${dataBlock.keyMaxSize}.")
+            throw DataKeyTooLongException("Data key is to long with size ${data.getKeySize()}. Max allowed ${dataBlock.keyMaxSize}.")
     }
 
     fun findByKey(key: K): T {
-        val dataBlock = loadDataBlock(key)
-
-        dataBlock.getData().forEach {
-            if (it.getKey() == key) {
-                return it
+        var index: Int? = magicHash(key)
+        println("Loading from index $index")
+        while (index != null) {
+            val dataBlock = blockFile.loadDataBlock(index)
+            dataBlock.getData().forEach {
+                if (it.getKey() == key) {
+                    return it
+                }
             }
+            index = dataBlock.substituteBlockIndex
         }
         throw DataNotFoundException("Data for key '$key' not found!")
     }
@@ -64,7 +76,6 @@ class HashFileService<K, T>(
         val index = magicHash(key)
         return blockFile.loadDataBlock(index)
     }
-
 
     private fun magicHash(key: K): Int {
         var hash = key.hashCode()

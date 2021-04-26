@@ -5,14 +5,14 @@ import cz.exception.DataBlockFullException
 import java.io.Serializable
 
 class DataBlock<K, T>(
-    private var dataPerDataBlock: Int,
+    val dataPerDataBlock: Int,
     val keyMaxSize: Int,
-    private var substituteBlockIndex: Int?
+    var substituteBlockIndex: Int?
 ) : IBlock where T : Serializable, T : IKeyable<K> {
     private var dataList: MutableList<T> = ArrayList()
 
     fun addData(data: T) {
-        if (dataList.size <= dataPerDataBlock) {
+        if (dataList.size < dataPerDataBlock) {
             dataList.add(data)
         } else {
             throw DataBlockFullException("Block is full!")

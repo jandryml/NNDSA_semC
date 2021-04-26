@@ -1,37 +1,35 @@
 package cz
 
-import org.apache.commons.lang3.SerializationUtils
-import java.io.*
-
-
-//}
-
-
-//fun main() = Window {
-//    var text by remember { mutableStateOf("Hello, World!") }
-//
-//    MaterialTheme {
-//        Button(onClick = {
-//            text = "Hello, Desktop!"
-//        }) {
-//            Text(text)
-//        }
-//    }
-data class Block(var name: String, var count: Int) : Serializable {
-    override fun toString(): String {
-        return "Block(name='$name', count=$count)"
-    }
-}
+import cz.data.City
+import cz.service.HashFileService
+import io.github.serpro69.kfaker.Faker
+import java.io.File
+import java.time.LocalDateTime
+import java.util.*
+import kotlin.random.Random
 
 fun main() {
-//    saveBLocks(
-//        listOf(
-//            Block("a", 42),
-//            Block("á", 666),
-//            Block("aa", 420)
-//        )
-//    )
-//    loadBlocks().forEach { println(it) }
+    val file = File("dataFile.bin")
 
+    val hashFile = HashFileService<String, City>(file.name, 200, 200, 75)
+
+    println(LocalDateTime.now())
+    val faker = Faker()
+    for (i in 0..10_000_000) {
+        hashFile.saveData(
+            City(
+                faker.address.city(),
+                (0..10_000_000).random(),
+                getRandomCoordinate(),
+                getRandomCoordinate()
+            )
+        )
+    }
+    println(LocalDateTime.now())
+
+}
+
+private fun getRandomCoordinate(): Double {
+    return Random.nextDouble(0.0, 1000.0)
 }
 

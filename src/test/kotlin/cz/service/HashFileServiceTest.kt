@@ -1,6 +1,7 @@
 package cz.service
 
 import cz.data.City
+import cz.exception.DataKeyTooLongException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -88,10 +89,26 @@ internal class HashFileServiceTest {
 
     @Test
     fun tooLongDataKeyTest() {
-        assertThrows(IndexOutOfBoundsException::class.java) {
+        assertThrows(DataKeyTooLongException::class.java) {
             val hashFile = HashFileService<String, City>(file.name, 50, 10, 10)
-            val city2 =City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčža", 500, 543.2, 984.545465)
+            val city2 = City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčža", 500, 543.2, 984.545465)
             hashFile.saveData(city2)
         }
+    }
+
+    @Test
+    fun substituteBlocktest() {
+        val hashFile = HashFileService<String, City>(file.name, 50, 10, 1)
+        val city2 = City("test", 500, 543.2, 984.545465)
+        hashFile.saveData(city2)
+        hashFile.findByKey("test")
+        hashFile.saveData(city2)
+        hashFile.findByKey("test")
+        hashFile.saveData(city2)
+        hashFile.findByKey("test")
+
+        val fetchedCities = hashFile.loadAllData()
+
+        assertEquals(3, fetchedCities.size)
     }
 }

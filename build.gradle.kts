@@ -13,7 +13,7 @@ version = "1.0"
 repositories {
     jcenter()
     mavenCentral()
-    maven { url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
+    maven { url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev")}
 }
 
 dependencies {
@@ -23,6 +23,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
     implementation("org.apache.commons:commons-lang3:3.5")
     implementation(compose.desktop.currentOs)
+        implementation("io.github.serpro69:kotlin-faker:1.6.0")
 }
 
 tasks.test {

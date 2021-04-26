@@ -86,4 +86,8 @@ class HashFileService<K, T>(
 
         return hash + 1
     }
+
+    fun close() {
+        blockFile.close()
+    }
 }

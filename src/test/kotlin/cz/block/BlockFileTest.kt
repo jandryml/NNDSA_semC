@@ -7,7 +7,8 @@ import java.io.File
 import kotlin.test.assertTrue
 
 internal class BlockFileTest {
-    val file = File("test.txt")
+    private val file = File("test.txt")
+    private lateinit var blockFile: BlockFile<String, City>
 
     @BeforeEach
     fun setUp() {
@@ -24,25 +25,25 @@ internal class BlockFileTest {
     }
 
 
-    @Test
-    fun test() {
-        val fileBoi = File("logFile - Copy")
-
-        val valueArray = IntArray(201) { 0 }
-
-        fileBoi.readLines().forEach {
-            valueArray[it.toInt()]++
-        }
-
-        for(index in valueArray.indices) {
-            println("index $index : ${valueArray[index]}")
-        }
-    }
+//    @Test
+//    fun test() {
+//        val fileBoi = File("logFile - Copy")
+//
+//        val valueArray = IntArray(201) { 0 }
+//
+//        fileBoi.readLines().forEach {
+//            valueArray[it.toInt()]++
+//        }
+//
+//        for(index in valueArray.indices) {
+//            println("index $index : ${valueArray[index]}")
+//        }
+//    }
 
 
     @Test
     fun blockFileTest() {
-        val blockFile = BlockFile<String, City>(file.name, 1000, 10, 10)
+        blockFile = BlockFile(file.name, 1000, 10, 10)
 
         val dataBlock = DataBlock<String, City>(10, 50, null)
 
@@ -62,5 +63,6 @@ internal class BlockFileTest {
 
 
         print(blockFile)
+        blockFile.close()
     }
 }

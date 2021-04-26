@@ -10,14 +10,17 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
     private var filename: String
     private lateinit var controlBlock: ControlBlock
     private val controlBlockSize = 500
+    private val file: RandomAccessFile
 
     constructor(fileName: String, keyMaxSize: Int, dataBlockCount: Int, dataPerDataBlock: Int) {
         this.filename = fileName
+        file = RandomAccessFile(filename, "rw")
         initNewBlockFile(keyMaxSize, dataBlockCount, dataPerDataBlock)
     }
 
     constructor(fileName: String) {
         this.filename = fileName
+        file = RandomAccessFile(filename, "rw")
         this.controlBlock = loadControlBlock()
     }
 
@@ -100,26 +103,20 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
     }
 
     private fun loadBlock(index: Int): IBlock {
-        RandomAccessFile(filename, "rw").use { stream ->
-            stream.seek(getBlockOffsetByIndex(index))
-            val size = stream.readInt()
-            val buffer = ByteArray(size)
-            stream.read(buffer, 0, size)
-            stream.close()
-            return SerializationUtils.deserialize(buffer)
-        }
+        file.seek(getBlockOffsetByIndex(index))
+        val size = file.readInt()
+        val buffer = ByteArray(size)
+        file.read(buffer, 0, size)
+        return SerializationUtils.deserialize(buffer)
     }
 
     private fun saveBlock(block: IBlock, index: Int, size: Int): IBlock {
-        RandomAccessFile(filename, "rw").use { stream ->
-            stream.seek(getBlockOffsetByIndex(index))
-            // shorten bytes count due to Integer size at beginning
-            val updatedSize = size - 4
-            stream.writeInt(updatedSize)
-            stream.write(convertToByteArray(block, updatedSize), 0, updatedSize)
-            stream.close()
-            return block
-        }
+        file.seek(getBlockOffsetByIndex(index))
+        // shorten bytes count due to Integer size at beginning
+        val updatedSize = size - 4
+        file.writeInt(updatedSize)
+        file.write(convertToByteArray(block, updatedSize), 0, updatedSize)
+        return block
     }
 
     private fun convertToByteArray(block: IBlock, blockSize: Int): ByteArray {
@@ -142,5 +139,9 @@ class BlockFile<K, T> where T : Serializable, T : IKeyable<K> {
         } else {
             (controlBlockSize + (index * controlBlock.dataBlockMaxSize)).toLong()
         }
+    }
+
+    fun close() {
+        file.close()
     }
 }

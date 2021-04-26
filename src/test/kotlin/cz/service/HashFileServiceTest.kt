@@ -2,6 +2,7 @@ package cz.service
 
 import cz.data.City
 import cz.exception.DataKeyTooLongException
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -10,7 +11,8 @@ import java.io.File
 import kotlin.test.assertTrue
 
 internal class HashFileServiceTest {
-    val file = File("hashTest.txt")
+    private val file = File("hashTest.txt")
+    private lateinit var hashFile: HashFileService<String, City>
 
     @BeforeEach
     fun setUp() {
@@ -19,9 +21,14 @@ internal class HashFileServiceTest {
         }
     }
 
+    @AfterEach
+    fun cleanUp() {
+        hashFile.close()
+    }
+
     @Test
     fun searchTest() {
-        val hashFile = HashFileService<String, City>(file.name, 50, 10, 10)
+        hashFile = HashFileService(file.name, 50, 10, 10)
 
         val city1 = City("Praha", 50000, 543.2, 984.545465)
         val city2 =City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465)
@@ -46,7 +53,7 @@ internal class HashFileServiceTest {
 
     @Test
     fun insertTest() {
-        val hashFile = HashFileService<String, City>(file.name, 50, 10, 10)
+        hashFile = HashFileService(file.name, 50, 10, 10)
 
         hashFile.saveData(City("Praha", 50000, 543.2, 984.545465))
         hashFile.saveData(City("", 500, 543.2, 984.545465))
@@ -59,7 +66,7 @@ internal class HashFileServiceTest {
 
     @Test
     fun removeTest() {
-        val hashFile = HashFileService<String, City>(file.name, 50, 10, 10)
+        hashFile = HashFileService(file.name, 50, 10, 10)
 
         hashFile.saveData(City("Praha", 50000, 543.2, 984.545465))
         hashFile.saveData(City("", 500, 543.2, 984.545465))
@@ -76,7 +83,7 @@ internal class HashFileServiceTest {
     fun maxDataBlockSizeTest() {
         val maxDataPerBlock = 20
 
-        val hashFile = HashFileService<String, City>(file.name, 100, 10, maxDataPerBlock)
+        hashFile = HashFileService(file.name, 100, 10, maxDataPerBlock)
 
         for (i in 0 until maxDataPerBlock) {
             hashFile.saveData(City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčžščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465))
@@ -90,7 +97,7 @@ internal class HashFileServiceTest {
     @Test
     fun tooLongDataKeyTest() {
         assertThrows(DataKeyTooLongException::class.java) {
-            val hashFile = HashFileService<String, City>(file.name, 50, 10, 10)
+            hashFile = HashFileService(file.name, 50, 10, 10)
             val city2 = City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčža", 500, 543.2, 984.545465)
             hashFile.saveData(city2)
         }
@@ -98,7 +105,7 @@ internal class HashFileServiceTest {
 
     @Test
     fun substituteBlocktest() {
-        val hashFile = HashFileService<String, City>(file.name, 50, 10, 1)
+        hashFile = HashFileService(file.name, 50, 10, 1)
         val city2 = City("test", 500, 543.2, 984.545465)
         hashFile.saveData(city2)
         hashFile.findByKey("test")

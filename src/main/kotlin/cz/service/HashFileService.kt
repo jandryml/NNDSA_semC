@@ -24,24 +24,21 @@ class HashFileService<K, T>(
     fun saveData(data: T) {
         val dataBlock = loadDataBlock(data.getKey())
         validateDataKeyLength(data, dataBlock)
-        val index = magicHash(data.getKey())
-        println("Saving to index $index")
+//        println("Saving to index ${dataBlock.index}")
         try {
             dataBlock.addData(data)
-            blockFile.saveDataBlock(dataBlock, index)
+            blockFile.saveDataBlock(dataBlock)
         } catch (e: DataBlockFullException) {
-            blockFile.saveToSubstituteBlock(data, dataBlock, index)
+            val substituteBlock = blockFile.loadSubstituteBlock(dataBlock)
+            substituteBlock.addData(data)
+            blockFile.saveDataBlock(substituteBlock)
         }
     }
 
-    private fun validateDataKeyLength(data: T, dataBlock: DataBlock<K, T>) {
-        if (data.getKeySize() > dataBlock.keyMaxSize)
-            throw DataKeyTooLongException("Data key is to long with size ${data.getKeySize()}. Max allowed ${dataBlock.keyMaxSize}.")
-    }
-
+    @Throws(DataNotFoundException::class)
     fun findByKey(key: K): T {
         var index: Int? = magicHash(key)
-        println("Loading from index $index")
+//        println("Loading from index $index")
         while (index != null) {
             val dataBlock = blockFile.loadDataBlock(index)
             dataBlock.getData().forEach {
@@ -54,22 +51,25 @@ class HashFileService<K, T>(
         throw DataNotFoundException("Data for key '$key' not found!")
     }
 
+    @Throws(DataNotFoundException::class)
     fun removeData(key: K): T {
-        val dataBlock: DataBlock<K, T>
-        val data: T
         try {
-            data = findByKey(key)
-            dataBlock = loadDataBlock(key)
+            val data = findByKey(key)
+            val dataBlock = loadDataBlock(key)
+            dataBlock.removeData(key)
+            blockFile.saveDataBlock(dataBlock)
+            return data
         } catch (e: DataNotFoundException) {
             throw DataNotFoundException("Data with key '$key' cannot be deleted, not found!")
         }
-        dataBlock.removeData(key)
-        blockFile.saveDataBlock(dataBlock, magicHash(key))
-        return data
     }
 
     fun loadAllData(): List<T> {
         return blockFile.loadAllDataBlocks().flatMap { it.getData() }
+    }
+
+    fun close() {
+        blockFile.close()
     }
 
     private fun loadDataBlock(key: K): DataBlock<K, T> {
@@ -87,7 +87,8 @@ class HashFileService<K, T>(
         return hash + 1
     }
 
-    fun close() {
-        blockFile.close()
+    private fun validateDataKeyLength(data: T, dataBlock: DataBlock<K, T>) {
+        if (data.getKeySize() > dataBlock.keyMaxSize)
+            throw DataKeyTooLongException("Data key is to long with size ${data.getKeySize()}. Max allowed ${dataBlock.keyMaxSize}.")
     }
 }

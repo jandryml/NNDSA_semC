@@ -19,7 +19,7 @@ internal class BlockFileTest {
 
     @Test
     fun dataBlockOverflowTest() {
-        val dataBlock = DataBlock<String, City>(10, 50, null)
+        val dataBlock = DataBlock<String, City>(1,10, 50, null)
 
 
     }
@@ -45,7 +45,7 @@ internal class BlockFileTest {
     fun blockFileTest() {
         blockFile = BlockFile(file.name, 1000, 10, 10)
 
-        val dataBlock = DataBlock<String, City>(10, 50, null)
+        val dataBlock = DataBlock<String, City>(7, 10, 50, null)
 
         dataBlock.addData(City("Praha", 50000, 543.2, 984.545465))
         dataBlock.addData(City("Kutná hora", 500, 543.2, 984.545465))
@@ -58,7 +58,7 @@ internal class BlockFileTest {
         dataBlock.addData(City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465))
         dataBlock.addData(City("ščřščřščřščžščžščžščřěščččřčřččěšřěšřščžřřčžřčžřčž", 500, 543.2, 984.545465))
 
-        blockFile.saveDataBlock(dataBlock, 7)
+        blockFile.saveDataBlock(dataBlock)
         blockFile.loadDataBlock(7)
 
 
